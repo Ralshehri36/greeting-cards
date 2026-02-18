@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>بطاقات تهنئة</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@500;600;700&family=Manrope:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero__content">
+        <!-- <p class="eyebrow">يعتمد على Canvas</p> -->
+        <h1>بطاقات تهنئة رمضان</h1>
+        <p class="lede">
+          اختر نموذجاً، أضِف الاسم، وحمّل الصورة فوراً.
+        </p>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel">
+        <div class="panel__header">
+          <h2>التصاميم</h2>
+        </div>
+        <div id="templatesGrid" class="grid" aria-live="polite"></div>
+        <p id="templatesStatus" class="muted status" role="status"></p>
+      </section>
+
+      <section class="panel">
+        <div class="panel__header">
+          <h2>المعاينة</h2>
+        </div>
+
+        <div class="preview" aria-live="polite">
+          <div id="previewPlaceholder" class="preview__placeholder">
+            اختر نموذجاً لعرض المعاينة.
+          </div>
+          <img
+            id="previewImage"
+            class="preview__image hidden"
+            alt="معاينة النموذج المختار"
+          />
+        </div>
+
+        <form id="nameForm" class="form hidden" autocomplete="off">
+          <label for="nameInput">الاسم</label>
+          <input
+            id="nameInput"
+            name="name"
+            type="text"
+            placeholder="مثال: علي"
+            minlength="1"
+            maxlength="40"
+            required
+          />
+          <button id="generateButton" type="submit">تنزيل</button>
+          <!-- <p class="hint">
+            يتم وضع الاسم في الإحداثيات المعرّفة داخل كل نموذج.
+          </p> -->
+        </form>
+
+        <canvas id="workCanvas" class="hidden" aria-hidden="true"></canvas>
+      </section>
+    </main>
+
+    <script src="script.js" defer></script>
+  </body>
+</html>

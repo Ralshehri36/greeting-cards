@@ -1,0 +1,26 @@
+<svg width="640" height="360" viewBox="0 0 640 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sky2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e0f2fe" />
+      <stop offset="100%" stop-color="#bae6fd" />
+    </linearGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0ea5e9" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+  </defs>
+  <rect width="640" height="180" fill="url(#sky2)" />
+  <rect y="180" width="640" height="180" fill="url(#sea)" />
+  <g fill="#e0f2fe" opacity="0.6">
+    <circle cx="120" cy="90" r="30" />
+    <circle cx="140" cy="85" r="35" />
+    <circle cx="170" cy="90" r="28" />
+    <circle cx="460" cy="120" r="30" />
+    <circle cx="490" cy="115" r="35" />
+    <circle cx="520" cy="122" r="26" />
+  </g>
+  <path d="M0 220 Q40 210 80 220 T160 220 T240 220 T320 220 T400 220 T480 220 T560 220 T640 220 V360 H0 Z" fill="#0ea5e9" opacity="0.4" />
+  <path d="M0 260 Q50 250 100 260 T200 260 T300 260 T400 260 T500 260 T600 260 T700 260 V360 H0 Z" fill="#38bdf8" opacity="0.6" />
+  <path d="M0 300 Q60 290 120 300 T240 300 T360 300 T480 300 T600 300 T720 300 V360 H0 Z" fill="#0ea5e9" opacity="0.8" />
+  <circle cx="520" cy="70" r="36" fill="#fde68a" />
+</svg>

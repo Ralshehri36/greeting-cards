@@ -1,0 +1,41 @@
+[
+  {
+    "id": "sunrise-horizon",
+    "title": "التصميم الاول",
+    "image": "assets/WhatsAppImage.jpeg",
+    "textX": 570,
+    "textY": 1420,
+    "fontSize": 46,
+    "textColor": "#f7f9fa"
+  },
+  {
+    "id": "",
+    "title": "",
+    "image": "",
+    "textX": 320,
+    "textY": 210,
+    "fontSize": 42,
+    "textColor": "#0b172c",
+    "strokeColor": "rgba(255,255,255,0.9)",
+    "strokeWidth": 5,
+    "shadowColor": "rgba(0,0,0,0.3)",
+    "shadowBlur": 10,
+    "shadowOffsetX": 0,
+    "shadowOffsetY": 2
+  },
+  {
+    "id": "",
+    "title": "",
+    "image": "",
+    "textX": 320,
+    "textY": 120,
+    "fontSize": 48,
+    "textColor": "#0f172a",
+    "strokeColor": "rgba(255,255,255,0.8)",
+    "strokeWidth": 6,
+    "shadowColor": "rgba(0,0,0,0.25)",
+    "shadowBlur": 10,
+    "shadowOffsetX": 0,
+    "shadowOffsetY": 2
+  }
+]
