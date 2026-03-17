@@ -30,7 +30,7 @@ async function loadTemplates() {
         const data = await res.json();
         state.templates = Array.isArray(data) ? data : [];
         if (!state.templates.length) {
-            setStatus("لم يتم العثور على تصميم. حدّث templates.json.");
+            setStatus("لم يتم العثور على تصميم.");
             return;
         }
         await selectTemplate(state.templates[0]);
@@ -74,13 +74,13 @@ async function onGenerateSubmit(event) {
     event.preventDefault();
     const template = state.active;
     if (!template) {
-        setStatus("الرجاء التأكد من تحميل التصميم.");
+        setStatus("تأكد من تحميل التصميم.");
         return;
     }
 
     const name = nameInput.value.trim();
     if (!name) {
-        setStatus("الرجاء إدخال الاسم.");
+        setStatus("أدخل الاسم.");
         nameInput.focus();
         return;
     }
@@ -91,12 +91,14 @@ async function onGenerateSubmit(event) {
             document.fonts.ready,
             ensureCanvasFontLoaded(template.fontSize || 46),
         ]);
+
         const dataUrl = await renderToDataUrl(template, name);
         triggerDownload(dataUrl, buildFileName(template, name));
-        setStatus("تم تنزيل الصورة.");
+
+        setStatus("تمت العملية.");
     } catch (err) {
         console.error(err);
-        setStatus("حدث خطأ أثناء الإنشاء.");
+        setStatus("حدث خطأ.");
     }
 }
 
@@ -109,7 +111,7 @@ function renderToDataUrl(template, name) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(image, 0, 0);
 
-        const fill = template.textColor || template.color || "#ffffff";
+        const fill = template.textColor || "#ffffff";
         const stroke = template.strokeColor || "rgba(0,0,0,0.45)";
         const strokeWidth = template.strokeWidth ?? 4;
 
@@ -118,11 +120,6 @@ function renderToDataUrl(template, name) {
         const size = template.fontSize || 42;
         ctx.font = `700 ${size}px ${CANVAS_FONT_STACK}`;
 
-        ctx.save();
-        ctx.shadowColor = "transparent";
-        ctx.shadowBlur = 0;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 0;
         ctx.direction = "rtl";
 
         if (strokeWidth > 0) {
@@ -133,73 +130,60 @@ function renderToDataUrl(template, name) {
 
         ctx.fillStyle = fill;
         ctx.fillText(name, template.textX, template.textY);
-        ctx.restore();
 
         return canvas.toDataURL("image/png");
     });
 }
 
 function triggerDownload(dataUrl, fileName) {
-    try {
-        const blob = dataUrlToBlob(dataUrl);
-        const url = URL.createObjectURL(blob);
-        const ua = navigator.userAgent || "";
-        const isAndroidChrome = /Android/i.test(ua) && /Chrome/i.test(ua);
-        const isIOSChrome = /CriOS/i.test(ua);
 
-        // Mobile Chrome often ignores download; force navigation to the blob URL instead.
-        if (isAndroidChrome || isIOSChrome) {
-            window.location.href = url;
-            setTimeout(() => URL.revokeObjectURL(url), 4000);
-            return;
-        }
+    const ua = navigator.userAgent;
 
-        const anchor = document.createElement("a");
-        anchor.href = url;
-        anchor.download = fileName;
-        anchor.rel = "noopener";
-        anchor.style.display = "none";
+    const isSafari =
+        /Safari/i.test(ua) &&
+        !/Chrome/i.test(ua) &&
+        !/CriOS/i.test(ua) &&
+        !/Android/i.test(ua);
 
-        if ("download" in HTMLAnchorElement.prototype) {
-            document.body.appendChild(anchor);
-            anchor.click();
-            anchor.remove();
-            setTimeout(() => URL.revokeObjectURL(url), 4000);
-            return;
-        }
-
-        window.location.href = url;
-        setTimeout(() => URL.revokeObjectURL(url), 4000);
-    } catch (err) {
-        console.error("Download fallback", err);
-        const fallbackWindow = window.open(dataUrl, "_blank");
-        if (!fallbackWindow) {
-            alert("يرجى السماح بالنوافذ المنبثقة لإتمام التنزيل.");
-        }
+    // Safari → عرض فقط
+    if (isSafari) {
+        window.open(dataUrl, "_blank");
+        return;
     }
+
+    // بقية المتصفحات → تحميل مباشر
+    const blob = dataUrlToBlob(dataUrl);
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
 function dataUrlToBlob(dataUrl) {
     const parts = dataUrl.split(",");
-    if (parts.length !== 2) throw new Error("Invalid data URL");
-    const mimeMatch = parts[0].match(/data:([^;]+)/);
-    const mime = mimeMatch ? mimeMatch[1] : "image/png";
+    const mime = parts[0].match(/:(.*?);/)[1];
     const binary = atob(parts[1]);
     const len = binary.length;
     const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i += 1) {
+
+    for (let i = 0; i < len; i++) {
         bytes[i] = binary.charCodeAt(i);
     }
+
     return new Blob([bytes], { type: mime });
 }
 
 function buildFileName(template, name) {
-    const base = (template.id || "greeting").toLowerCase().replace(/\s+/g, "-");
-    const cleanName = name
-        .trim()
-        .replace(/\s+/g, "-")
-        .replace(/[^\p{Letter}\p{Number}-]+/gu, "-");
-    return `${base}-${cleanName || "صديق"}.png`;
+    const base = (template.id || "image").toLowerCase().replace(/\s+/g, "-");
+    const cleanName = name.trim().replace(/\s+/g, "-");
+    return `${base}-${cleanName}.png`;
 }
 
 function loadImage(src) {
