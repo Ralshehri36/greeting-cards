@@ -143,14 +143,24 @@ function triggerDownload(dataUrl, fileName) {
     try {
         const blob = dataUrlToBlob(dataUrl);
         const url = URL.createObjectURL(blob);
+        const ua = navigator.userAgent || "";
+        const isAndroidChrome = /Android/i.test(ua) && /Chrome/i.test(ua);
+        const isIOSChrome = /CriOS/i.test(ua);
+
+        // Mobile Chrome often ignores download; force navigation to the blob URL instead.
+        if (isAndroidChrome || isIOSChrome) {
+            window.location.href = url;
+            setTimeout(() => URL.revokeObjectURL(url), 4000);
+            return;
+        }
+
         const anchor = document.createElement("a");
         anchor.href = url;
         anchor.download = fileName;
         anchor.rel = "noopener";
         anchor.style.display = "none";
 
-        const canDownload = "download" in HTMLAnchorElement.prototype;
-        if (canDownload) {
+        if ("download" in HTMLAnchorElement.prototype) {
             document.body.appendChild(anchor);
             anchor.click();
             anchor.remove();
@@ -158,7 +168,6 @@ function triggerDownload(dataUrl, fileName) {
             return;
         }
 
-        // Fallback for browsers (often mobile Chrome) that ignore download.
         window.location.href = url;
         setTimeout(() => URL.revokeObjectURL(url), 4000);
     } catch (err) {
