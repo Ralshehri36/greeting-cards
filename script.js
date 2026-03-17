@@ -137,33 +137,41 @@ function renderToDataUrl(template, name) {
 
 function triggerDownload(dataUrl, fileName) {
 
-    const ua = navigator.userAgent;
-
-    const isSafari =
-        /Safari/i.test(ua) &&
-        !/Chrome/i.test(ua) &&
-        !/CriOS/i.test(ua) &&
-        !/Android/i.test(ua);
-
-    // Safari → عرض فقط
-    if (isSafari) {
-        window.open(dataUrl, "_blank");
-        return;
-    }
-
-    // بقية المتصفحات → تحميل مباشر
     const blob = dataUrlToBlob(dataUrl);
     const url = URL.createObjectURL(blob);
 
     const a = document.createElement("a");
     a.href = url;
     a.download = fileName;
+    a.rel = "noopener";
+    a.style.display = "none";
 
     document.body.appendChild(a);
-    a.click();
+
+    // click حقيقي داخل user gesture
+    a.dispatchEvent(
+        new MouseEvent("click", {
+            bubbles: true,
+            cancelable: true,
+            view: window
+        })
+    );
+
     document.body.removeChild(a);
 
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    // fallback مهم جداً للجوالات التي تتجاهل download
+    setTimeout(() => {
+        URL.revokeObjectURL(url);
+
+        // إذا لم يبدأ التحميل خلال لحظة → افتح الصورة
+        // المستخدم يقدر يحفظها يدوياً
+        const isDownloadSupported = "download" in HTMLAnchorElement.prototype;
+
+        if (!isDownloadSupported) {
+            window.open(dataUrl, "_blank");
+        }
+
+    }, 1500);
 }
 
 function dataUrlToBlob(dataUrl) {
