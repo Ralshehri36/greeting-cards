@@ -140,10 +140,37 @@ function renderToDataUrl(template, name) {
 }
 
 function triggerDownload(dataUrl, fileName) {
-    const link = document.createElement("a");
-    link.href = dataUrl;
-    link.download = fileName;
-    link.click();
+    try {
+        const blob = dataUrlToBlob(dataUrl);
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        console.error("Download fallback", err);
+        const fallbackWindow = window.open(dataUrl, "_blank");
+        if (!fallbackWindow) {
+            alert("يرجى السماح بالنوافذ المنبثقة لإتمام التنزيل.");
+        }
+    }
+}
+
+function dataUrlToBlob(dataUrl) {
+    const parts = dataUrl.split(",");
+    if (parts.length !== 2) throw new Error("Invalid data URL");
+    const mimeMatch = parts[0].match(/data:([^;]+)/);
+    const mime = mimeMatch ? mimeMatch[1] : "image/png";
+    const binary = atob(parts[1]);
+    const len = binary.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i += 1) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+    return new Blob([bytes], { type: mime });
 }
 
 function buildFileName(template, name) {
