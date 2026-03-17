@@ -143,26 +143,24 @@ function triggerDownload(dataUrl, fileName) {
     try {
         const blob = dataUrlToBlob(dataUrl);
         const url = URL.createObjectURL(blob);
-        const isMobileChrome = /CriOS/i.test(navigator.userAgent);
         const anchor = document.createElement("a");
         anchor.href = url;
         anchor.download = fileName;
         anchor.rel = "noopener";
+        anchor.style.display = "none";
 
-        if (!("download" in HTMLAnchorElement.prototype) || isMobileChrome) {
-            // Mobile Chrome often ignores download; open in new tab instead.
-            const opened = window.open(url, "_blank");
-            if (!opened) {
-                alert("يرجى السماح بالنوافذ المنبثقة لإتمام التنزيل.");
-            }
-            setTimeout(() => URL.revokeObjectURL(url), 3000);
+        const canDownload = "download" in HTMLAnchorElement.prototype;
+        if (canDownload) {
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 4000);
             return;
         }
 
-        document.body.appendChild(anchor);
-        anchor.click();
-        anchor.remove();
-        URL.revokeObjectURL(url);
+        // Fallback for browsers (often mobile Chrome) that ignore download.
+        window.location.href = url;
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
     } catch (err) {
         console.error("Download fallback", err);
         const fallbackWindow = window.open(dataUrl, "_blank");
