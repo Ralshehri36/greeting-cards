@@ -1,117 +1,80 @@
-const grid = document.getElementById("templatesGrid");
-const statusEl = document.getElementById("templatesStatus");
 const previewImage = document.getElementById("previewImage");
-const previewPlaceholder = document.getElementById("previewPlaceholder");
+const statusEl = document.getElementById("statusMessage");
 const form = document.getElementById("nameForm");
 const nameInput = document.getElementById("nameInput");
 const canvas = document.getElementById("workCanvas");
 
 const state = {
     templates: [],
-    selectedId: null,
+    active: null,
 };
 
-const CANVAS_FONT_STACK = '"Lemonada", "Noto Sans Arabic", "Manrope", sans-serif';
+const DEFAULT_NAME = "";
+const CANVAS_FONT_STACK = '"Cairo", "Noto Sans Arabic", "Manrope", sans-serif';
 
 document.addEventListener("DOMContentLoaded", () => {
-    loadTemplates();
-    form.addEventListener("submit", onGenerateSubmit);
+    init();
 });
 
+async function init() {
+    form.addEventListener("submit", onGenerateSubmit);
+    nameInput.addEventListener("input", onNameInput);
+    await loadTemplates();
+}
+
 async function loadTemplates() {
-    setStatus("جاري تحميل النماذج…");
+    setStatus("جاري تحميل التصميم…");
     try {
         const res = await fetch("templates.json", { cache: "no-store" });
         if (!res.ok) throw new Error(`Failed to load templates: ${res.status}`);
         const data = await res.json();
         state.templates = Array.isArray(data) ? data : [];
-        renderTemplates(state.templates);
-        setStatus(state.templates.length ? "" : "لم يتم العثور على نماذج. أضف قيماً إلى templates.json.");
+        if (!state.templates.length) {
+            setStatus("لم يتم العثور على تصميم. حدّث templates.json.");
+            return;
+        }
+        await selectTemplate(state.templates[0]);
     } catch (err) {
-        setStatus("تعذّر تحميل النماذج. تحقق من templates.json.");
         console.error(err);
+        setStatus("تعذّر تحميل التصميم.");
     }
 }
 
-function renderTemplates(list) {
-    grid.innerHTML = "";
-    list.forEach((template) => {
-        const card = createTemplateCard(template);
-        grid.appendChild(card);
-    });
+async function selectTemplate(template) {
+    state.active = template;
+    const initialName = nameInput.value.trim() || template.defaultName || DEFAULT_NAME;
+    nameInput.value = initialName;
+    nameInput.placeholder = template.placeholder || DEFAULT_NAME;
+    await renderPreview(initialName);
 }
 
-function createTemplateCard(template) {
-    const card = document.createElement("article");
-    card.className = "card";
-    card.tabIndex = 0;
-    card.dataset.id = template.id || template.image;
-
-    const thumb = document.createElement("div");
-    thumb.className = "card__thumb";
-    const img = document.createElement("img");
-    img.src = template.image;
-    img.alt = template.title ? `${template.title} template` : "Template preview";
-    thumb.appendChild(img);
-
-    const title = document.createElement("p");
-    title.className = "card__title";
-    // title.textContent = template.title || "Untitled template"; --- IGNORE ---
-
-    card.append(thumb, title);
-    card.addEventListener("click", () => selectTemplate(template));
-    card.addEventListener("keydown", (evt) => {
-        if (evt.key === "Enter" || evt.key === " ") {
-            evt.preventDefault();
-            selectTemplate(template);
-        }
-    });
-
-    return card;
+async function onNameInput() {
+    const name = nameInput.value.trim() || DEFAULT_NAME;
+    await renderPreview(name);
 }
 
-function selectTemplate(template) {
-    state.selectedId = template.id || template.image;
-    highlightSelectedCard(state.selectedId);
-    updatePreview(template.image);
-    toggleForm(true);
-}
-
-function highlightSelectedCard(selectedId) {
-    grid.querySelectorAll(".card").forEach((card) => {
-        card.classList.toggle("card--selected", card.dataset.id === selectedId);
-    });
-}
-
-function updatePreview(src) {
-    previewImage.classList.add("hidden");
-    previewPlaceholder.classList.remove("hidden");
-
-    previewImage.onload = () => {
-        previewPlaceholder.classList.add("hidden");
+async function renderPreview(name) {
+    if (!state.active) return;
+    try {
+        await Promise.all([
+            document.fonts.ready,
+            ensureCanvasFontLoaded(state.active.fontSize || 46),
+        ]);
+        const dataUrl = await renderToDataUrl(state.active, name);
+        previewImage.src = dataUrl;
         previewImage.classList.remove("hidden");
-    };
-
-    previewImage.onerror = () => {
-        setStatus("تعذّرت معاينة الصورة. تحقق من مسارها.");
-    };
-
-    previewImage.src = src;
-}
-
-function toggleForm(visible) {
-    form.classList.toggle("hidden", !visible);
-    if (visible) {
-        form.reset();
-        nameInput.focus();
+        setStatus("");
+    } catch (err) {
+        console.error(err);
+        setStatus("تعذّرت المعاينة.");
     }
 }
 
 async function onGenerateSubmit(event) {
     event.preventDefault();
-    const template = state.templates.find((t) => (t.id || t.image) === state.selectedId);
+    const template = state.active;
     if (!template) {
-        setStatus("الرجاء اختيار نموذج أولاً.");
+        setStatus("الرجاء التأكد من تحميل التصميم.");
         return;
     }
 
@@ -126,55 +89,54 @@ async function onGenerateSubmit(event) {
     try {
         await Promise.all([
             document.fonts.ready,
-            ensureCanvasFontLoaded(template.fontSize || 42),
-        ]); // Ensure Lemonada is loaded before drawing
-        const blobUrl = await renderAndExport(template, name);
-        triggerDownload(blobUrl, buildFileName(template, name));
+            ensureCanvasFontLoaded(template.fontSize || 46),
+        ]);
+        const dataUrl = await renderToDataUrl(template, name);
+        triggerDownload(dataUrl, buildFileName(template, name));
         setStatus("تم تنزيل الصورة.");
     } catch (err) {
-        setStatus("حدث خطأ أثناء الإنشاء.");
         console.error(err);
+        setStatus("حدث خطأ أثناء الإنشاء.");
     }
 }
 
-async function renderAndExport(template, name) {
-    const image = await loadImage(template.image);
-    canvas.width = image.naturalWidth;
-    canvas.height = image.naturalHeight;
+function renderToDataUrl(template, name) {
+    return loadImage(template.image).then((image) => {
+        canvas.width = image.naturalWidth;
+        canvas.height = image.naturalHeight;
 
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(image, 0, 0);
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(image, 0, 0);
 
-    const fill = template.textColor || template.color || "#ffffff";
-    const stroke = template.strokeColor || "rgba(0,0,0,0.45)";
-    const strokeWidth = template.strokeWidth || 4;
-    const shadowColor = template.shadowColor || "rgba(0,0,0,0.35)";
-    const shadowBlur = template.shadowBlur || 10;
-    const shadowOffsetX = template.shadowOffsetX || 0;
-    const shadowOffsetY = template.shadowOffsetY || 2;
+        const fill = template.textColor || template.color || "#ffffff";
+        const stroke = template.strokeColor || "rgba(0,0,0,0.45)";
+        const strokeWidth = template.strokeWidth ?? 4;
 
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    const size = template.fontSize || 42;
-    ctx.font = `700 ${size}px ${CANVAS_FONT_STACK}`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        const size = template.fontSize || 42;
+        ctx.font = `700 ${size}px ${CANVAS_FONT_STACK}`;
 
-    ctx.save();
-    ctx.shadowColor = shadowColor;
-    ctx.shadowBlur = shadowBlur;
-    ctx.shadowOffsetX = shadowOffsetX;
-    ctx.shadowOffsetY = shadowOffsetY;
+        ctx.save();
+        ctx.shadowColor = "transparent";
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        ctx.direction = "rtl";
 
-    if (strokeWidth > 0) {
-        ctx.lineWidth = strokeWidth;
-        ctx.strokeStyle = stroke;
-        ctx.strokeText(name, template.textX, template.textY);
-    }
+        if (strokeWidth > 0) {
+            ctx.lineWidth = strokeWidth;
+            ctx.strokeStyle = stroke;
+            ctx.strokeText(name, template.textX, template.textY);
+        }
 
-    ctx.fillStyle = fill;
-    ctx.fillText(name, template.textX, template.textY);
-    ctx.restore();
+        ctx.fillStyle = fill;
+        ctx.fillText(name, template.textX, template.textY);
+        ctx.restore();
 
-    return canvas.toDataURL("image/png");
+        return canvas.toDataURL("image/png");
+    });
 }
 
 function triggerDownload(dataUrl, fileName) {
@@ -203,7 +165,7 @@ function loadImage(src) {
 }
 
 function ensureCanvasFontLoaded(sizePx) {
-    return document.fonts.load(`700 ${sizePx}px "Lemonada"`);
+    return document.fonts.load(`700 ${sizePx}px "Cairo"`);
 }
 
 function setStatus(message) {
