@@ -56,7 +56,7 @@ function createTemplateCard(template) {
 
     const title = document.createElement("p");
     title.className = "card__title";
-    title.textContent = template.title || "Untitled template";
+    // title.textContent = template.title || "Untitled template"; --- IGNORE ---
 
     card.append(thumb, title);
     card.addEventListener("click", () => selectTemplate(template));
