@@ -143,12 +143,25 @@ function triggerDownload(dataUrl, fileName) {
     try {
         const blob = dataUrlToBlob(dataUrl);
         const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
+        const isMobileChrome = /CriOS/i.test(navigator.userAgent);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = fileName;
+        anchor.rel = "noopener";
+
+        if (!("download" in HTMLAnchorElement.prototype) || isMobileChrome) {
+            // Mobile Chrome often ignores download; open in new tab instead.
+            const opened = window.open(url, "_blank");
+            if (!opened) {
+                alert("يرجى السماح بالنوافذ المنبثقة لإتمام التنزيل.");
+            }
+            setTimeout(() => URL.revokeObjectURL(url), 3000);
+            return;
+        }
+
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
         URL.revokeObjectURL(url);
     } catch (err) {
         console.error("Download fallback", err);
@@ -185,6 +198,7 @@ function buildFileName(template, name) {
 function loadImage(src) {
     return new Promise((resolve, reject) => {
         const img = new Image();
+        img.crossOrigin = "anonymous";
         img.onload = () => resolve(img);
         img.onerror = reject;
         img.src = src;
